@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using CarShopFinal.Application.Features.Listing.ApproveListing;
 using CarShopFinal.Application.Features.Listing.CreateListing;
 using CarShopFinal.Application.Features.Listing.DeleteListing;
@@ -23,6 +24,7 @@ public class ListingController : ControllerBase
     private readonly DeleteListingHandler _deleteListingHandler;
     private readonly UpdateListingHandler _updateListingHandler;
     private readonly IFileService _fileService;
+    private readonly ISellerRepository _sellers;
 
     public ListingController(
         CreateListingHandler createListingHandler,
@@ -32,7 +34,8 @@ public class ListingController : ControllerBase
         RejectListingHandler rejectListingHandler,
         DeleteListingHandler deleteListingHandler,
         UpdateListingHandler updateListingHandler,
-        IFileService fileService)
+        IFileService fileService,
+        ISellerRepository sellers)
     {
         _createListingHandler = createListingHandler;
         _getListingsHandler = getListingsHandler;
@@ -42,6 +45,7 @@ public class ListingController : ControllerBase
         _deleteListingHandler = deleteListingHandler;
         _updateListingHandler = updateListingHandler;
         _fileService = fileService;
+        _sellers = sellers;
     }
 
     [Authorize]
@@ -49,6 +53,9 @@ public class ListingController : ControllerBase
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> CreateListing([FromForm] CreateListingRequest request, IFormFileCollection photos)
     {
+        var seller = await GetCurrentSeller();
+        if (seller is null) return Forbid();
+
         var fileNames = new List<string>();
         foreach (var photo in photos)
         {
@@ -56,7 +63,7 @@ public class ListingController : ControllerBase
             fileNames.Add(fileName);
         }
 
-        var command = new CreateListingCommand(request.SellerId, request.CarId, request.City, request.Description, fileNames);
+        var command = new CreateListingCommand(seller.Id, request.CarId, request.City, request.Description, fileNames);
         var id = await _createListingHandler.Handle(command);
         return Ok(id);
     }
@@ -89,6 +96,7 @@ public class ListingController : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateListing(Guid id, [FromBody] UpdateListingRequest request)
     {
+        if (!await OwnsListing(id)) return NotFound();
         await _updateListingHandler.Handle(new UpdateListingCommand(id, request.City, request.Description));
         return NoContent();
     }
@@ -97,11 +105,29 @@ public class ListingController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteListing(Guid id)
     {
+        if (!await OwnsListing(id)) return NotFound();
         await _deleteListingHandler.Handle(new DeleteListingCommand(id));
         return NoContent();
     }
 
-    [Authorize]
+    private async Task<CarShopFinal.Domain.Models.Seller?> GetCurrentSeller()
+    {
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            return null;
+
+        return await _sellers.GetSellerByUserId(userId);
+    }
+
+    private async Task<bool> OwnsListing(Guid id)
+    {
+        var seller = await GetCurrentSeller();
+        if (seller is null) return false;
+
+        var listing = await _getListingByIdHandler.Handle(new GetListingByIdQuery(id));
+        return listing?.SellerId == seller.Id;
+    }
+
+    [Authorize(Policy = "ModerateListings")]
     [HttpPut("{id:guid}/approve")]
     public async Task<IActionResult> ApproveListing(Guid id)
     {
@@ -109,7 +135,7 @@ public class ListingController : ControllerBase
         return NoContent();
     }
 
-    [Authorize]
+    [Authorize(Policy = "ModerateListings")]
     [HttpPut("{id:guid}/reject")]
     public async Task<IActionResult> RejectListing(Guid id)
     {
@@ -118,6 +144,6 @@ public class ListingController : ControllerBase
     }
 }
 
-public record CreateListingRequest(Guid SellerId, Guid CarId, string City, string Description);
+public record CreateListingRequest(Guid CarId, string City, string Description);
 
 public record UpdateListingRequest(string City, string Description);

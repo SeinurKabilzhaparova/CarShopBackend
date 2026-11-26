@@ -20,3 +20,11 @@ Outside Compose, set `jwt__key` in the API environment to a private signing key 
 ## Orders
 
 Create your customer profile as an authenticated user before placing an order. `POST /api/order` uses that profile and requires no request body. Reading or cancelling a missing order or an order owned by another customer returns HTTP 404.
+
+## Buying and selling from one account
+
+Register with `email` and `password` at `POST /api/auth/register`. The same account can create a buyer profile for orders and a seller profile for listings. Older clients may still send a registration role. The API assigns its own default.
+
+Create a personal seller profile at `POST /seller/private` using `name`, `city`, `phone`, and `email`. The existing `POST /seller` accepts business details. Both use the signed-in account and return the seller ID. Each account can have one seller profile. Look up your own profile at `GET /seller/me`.
+
+`POST /api/listing` uses the current account's seller profile. Submit `carId`, `city`, `description`, and `photos` as multipart form data. Only the listing owner can edit or delete it. Configure moderator account IDs with `Moderation__UserIds__0`, `Moderation__UserIds__1`, and so on to enable approval and rejection.

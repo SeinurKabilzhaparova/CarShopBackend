@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using CarShopFinal.Persistance;
 using CarShopFinal.Application.Dependency;
@@ -59,7 +60,20 @@ builder.Services.AddScoped<IRedis>(sp =>
     return new RedisDb(mux);
 });
 
-builder.Services.AddAuthorization();
+var moderatorIds = builder.Configuration.GetSection("Moderation:UserIds")
+    .GetChildren()
+    .Select(entry => Guid.TryParse(entry.Value, out var id) ? id : Guid.Empty)
+    .Where(id => id != Guid.Empty)
+    .ToHashSet();
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("ModerateListings", policy => policy
+        .RequireAuthenticatedUser()
+        .RequireAssertion(context =>
+            Guid.TryParse(context.User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)
+            && moderatorIds.Contains(userId)));
+});
 builder.Services.AddControllers()
     .AddJsonOptions(o => o.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles);
 builder.Services.AddOpenApi();
