@@ -25,6 +25,7 @@ public class ListingController : ControllerBase
     private readonly UpdateListingHandler _updateListingHandler;
     private readonly IFileService _fileService;
     private readonly ISellerRepository _sellers;
+    private readonly IListingRepository _listings;
 
     public ListingController(
         CreateListingHandler createListingHandler,
@@ -35,7 +36,8 @@ public class ListingController : ControllerBase
         DeleteListingHandler deleteListingHandler,
         UpdateListingHandler updateListingHandler,
         IFileService fileService,
-        ISellerRepository sellers)
+        ISellerRepository sellers,
+        IListingRepository listings)
     {
         _createListingHandler = createListingHandler;
         _getListingsHandler = getListingsHandler;
@@ -46,6 +48,7 @@ public class ListingController : ControllerBase
         _updateListingHandler = updateListingHandler;
         _fileService = fileService;
         _sellers = sellers;
+        _listings = listings;
     }
 
     [Authorize]
@@ -66,6 +69,16 @@ public class ListingController : ControllerBase
         var command = new CreateListingCommand(seller.Id, request.CarId, request.City, request.Description, fileNames);
         var id = await _createListingHandler.Handle(command);
         return Ok(id);
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<IActionResult> GetMyListings()
+    {
+        var seller = await GetCurrentSeller();
+        if (seller is null) return NotFound();
+
+        return Ok(await _listings.GetBySellerId(seller.Id));
     }
 
     [HttpGet]

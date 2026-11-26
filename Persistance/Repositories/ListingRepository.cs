@@ -20,6 +20,15 @@ public class ListingRepository:IListingRepository
         await _db.SaveChangesAsync();
     }
 
+    public async Task<List<Listing>> GetBySellerId(Guid sellerId)
+    {
+        return await _db.Listings.AsNoTracking()
+            .Where(listing => listing.SellerId == sellerId)
+            .Include(listing => listing.Car)
+            .OrderByDescending(listing => listing.CreatedAt)
+            .ToListAsync();
+    }
+
     public async Task<Listing?> GetListing(Guid id)
     {
         return await _db.Listings.Include(s => s.Car).FirstOrDefaultAsync(s => s.Id == id);
