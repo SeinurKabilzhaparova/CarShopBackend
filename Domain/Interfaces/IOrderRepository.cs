@@ -5,7 +5,7 @@ namespace CarShopFinal.Domain.Interfaces;
 public interface IOrderRepository
 {
     Task AddAsync(Order order);
-    Task<Order?> GetByIdAsync(Guid id);
+    Task<Order?> GetByIdAsync(Guid id, Guid customerId);
     Task<List<Order>?> GetByCustomerIdAsync(Guid customerId);
     Task UpdateAsync(Order order);
 }

@@ -14,7 +14,7 @@ public class CancelOrderHandler
 
     public async Task Handle(CancelOrderCommand command)
     {
-        var order = await _orderRepository.GetByIdAsync(command.OrderId)
+        var order = await _orderRepository.GetByIdAsync(command.OrderId, command.CustomerId)
             ?? throw new NotFoundException("Order", command.OrderId);
 
         order.Cancel();

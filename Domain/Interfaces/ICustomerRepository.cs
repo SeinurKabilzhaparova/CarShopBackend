@@ -5,6 +5,7 @@ namespace CarShopFinal.Domain.Interfaces;
 public interface ICustomerRepository
 {
     Task<Customer?> GetById(Guid id);
+    Task<Customer?> GetByUserId(Guid userId);
     Task<Customer?> GetByEmail(string email);
     Task<Guid> AddAsync(Customer customer);
     Task UpdateAsync(Customer customer);

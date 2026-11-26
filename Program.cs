@@ -14,6 +14,10 @@ using IRedis = CarShopFinal.Persistance.Redis.IRedis;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var jwtKey = builder.Configuration["jwt:key"];
+if (string.IsNullOrWhiteSpace(jwtKey) || Encoding.UTF8.GetByteCount(jwtKey) < 32)
+    throw new InvalidOperationException("Configure jwt__key with a signing key of at least 32 bytes.");
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -27,7 +31,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = builder.Configuration["jwt:issuer"],
             ValidAudience = builder.Configuration["jwt:audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["jwt:key"]!)
+                Encoding.UTF8.GetBytes(jwtKey)
             )
         };
         options.Events = new JwtBearerEvents

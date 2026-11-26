@@ -13,6 +13,6 @@ public class GetOrderByIdHandler
 
     public async Task<Domain.Models.Order?> Handle(GetOrderByIdQuery query)
     {
-        return await _orderRepository.GetByIdAsync(query.id);
+        return await _orderRepository.GetByIdAsync(query.Id, query.CustomerId);
     }
 }

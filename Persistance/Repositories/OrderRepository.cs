@@ -18,9 +18,9 @@ public class OrderRepository:IOrderRepository
         await _dbContext.SaveChangesAsync();
     }
 
-    public async Task<Order?> GetByIdAsync(Guid id)
+    public async Task<Order?> GetByIdAsync(Guid id, Guid customerId)
     {
-        return  await _dbContext.Orders.FirstOrDefaultAsync(i=> i.Id == id);
+        return await _dbContext.Orders.FirstOrDefaultAsync(order => order.Id == id && order.CustomerId == customerId);
     }
 
     public async Task<List<Order>?> GetByCustomerIdAsync(Guid customerId)

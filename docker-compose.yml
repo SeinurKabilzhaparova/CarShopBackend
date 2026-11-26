@@ -41,7 +41,7 @@ services:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=carshop;Username=postgres;Password=password"
       Redis__ConnectionString: "redis:6379"
-      jwt__key: "asdbfjdlvfdkopsfvnjvbsh37rtgf92uebhfjewef9e4ub3gkj"
+      jwt__key: "${CARSHOP_JWT_KEY:?Set CARSHOP_JWT_KEY before starting CarShop}"
       jwt__issuer: "CarShop"
       jwt__audience: "CarShopUsers"
     depends_on:
