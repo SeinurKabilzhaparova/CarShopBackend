@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using CarShopFinal.Application.Features.Customer.CreateCustomer;
 using CarShopFinal.Application.Features.Customer.GetCustomerByEmail;
 using CarShopFinal.Application.Features.Customer.GetCustomerById;
@@ -28,10 +29,14 @@ public class CustomerController : ControllerBase
         _updateCustomerHandler = updateCustomerHandler;
     }
 
+    [Authorize]
     [HttpPost]
     public async Task<IActionResult> CreateCustomer([FromBody] CreateCustomerCommand customer)
     {
-        var newCustomer = await _createCustomerHandler.Handle(customer);
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            return Forbid();
+
+        var newCustomer = await _createCustomerHandler.Handle(customer with { userID = userId });
         return Ok(newCustomer);
     }
 

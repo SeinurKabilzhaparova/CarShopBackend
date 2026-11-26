@@ -16,14 +16,14 @@ public class AuthService
         _tokenService = tokenService;
     }
 
-    public async Task<string> RegisterUser(string email, string password, string role)
+    public async Task<string> RegisterUser(string email, string password)
     {
         var exist = await _userRepository.GetByEmailAsync(email);
         if(exist != null)
             throw new ApplicationException("User already exists");
         
         var hash = _passwordHasher.HashPassword(password);
-        var user = new User(email, hash, role);
+        var user = new User(email, hash, "customer");
 
         await _userRepository.AddAsync(user);
         return _tokenService.GenerateToken(user);

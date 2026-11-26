@@ -2,6 +2,8 @@ using CarShopFinal.Domain.Interfaces;
 using CarShopFinal.Domain.Models;
 using CarShopFinal.Persistance.Context;
 
+using Microsoft.EntityFrameworkCore;
+
 namespace CarShopFinal.Persistance.Repositories;
 
 public class SellerRepository:ISellerRepository
@@ -20,12 +22,12 @@ public class SellerRepository:ISellerRepository
 
     public async Task<Seller?> GetSellerByEmail(string email)
     {
-        return await _context.Sellers.FindAsync(email);
+        return await _context.Sellers.FirstOrDefaultAsync(seller => seller.CompanyEmail == email);
     }
 
     public async Task<Seller?> GetSellerByUserId(Guid userId)
     {
-        return await _context.Sellers.FindAsync(userId);
+        return await _context.Sellers.SingleOrDefaultAsync(seller => seller.UserId == userId);
     }
 
     public async Task<Guid> AddSeller(Seller seller)

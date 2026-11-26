@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using CarShopFinal.Persistance;
 using CarShopFinal.Application.Dependency;
@@ -14,6 +15,10 @@ using IRedis = CarShopFinal.Persistance.Redis.IRedis;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var jwtKey = builder.Configuration["jwt:key"];
+if (string.IsNullOrWhiteSpace(jwtKey) || Encoding.UTF8.GetByteCount(jwtKey) < 32)
+    throw new InvalidOperationException("Configure jwt__key with a signing key of at least 32 bytes.");
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -27,7 +32,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = builder.Configuration["jwt:issuer"],
             ValidAudience = builder.Configuration["jwt:audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["jwt:key"]!)
+                Encoding.UTF8.GetBytes(jwtKey)
             )
         };
         options.Events = new JwtBearerEvents
@@ -55,7 +60,20 @@ builder.Services.AddScoped<IRedis>(sp =>
     return new RedisDb(mux);
 });
 
-builder.Services.AddAuthorization();
+var moderatorIds = builder.Configuration.GetSection("Moderation:UserIds")
+    .GetChildren()
+    .Select(entry => Guid.TryParse(entry.Value, out var id) ? id : Guid.Empty)
+    .Where(id => id != Guid.Empty)
+    .ToHashSet();
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("ModerateListings", policy => policy
+        .RequireAuthenticatedUser()
+        .RequireAssertion(context =>
+            Guid.TryParse(context.User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)
+            && moderatorIds.Contains(userId)));
+});
 builder.Services.AddControllers()
     .AddJsonOptions(o => o.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles);
 builder.Services.AddOpenApi();
